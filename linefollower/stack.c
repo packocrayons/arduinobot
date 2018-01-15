@@ -25,3 +25,9 @@ void removeAndFreeHead(stackElement** head){ //replaces head with head-> next
 	*head = (*head)->next;
 	free(prevHead);
 }
+
+void popAndExecute(stackElement** head){
+	stackElement* executor = *head;
+	executor->function(executor->arg);
+	removeAndFreeHead(head);
+}
