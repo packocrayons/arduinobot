@@ -8,26 +8,43 @@ Every time it executes something that was not popped of the stack (ie it's not i
 */
 
 
+// typedef struct stackElement{
+// 	char c;
+// }stackElement;
+
 typedef struct stackElement {
-	struct stackElement* next; //next may be the wrong word here, since head (which also may be the wrong word) is actually the end of the list, and head->next is null at the leaf node.
 	int arg;
 	void (*function)(int);
 } stackElement;
 
+typedef struct Stack{
+	void* mem;
+	stackElement* head;
+} Stack;
 
-void addToHead(stackElement** head, stackElement* toAdd){
-	toAdd->next = *head;
-	*head = toAdd;
+
+Stack* setup(int memSize){ //returns a void pointer to the entire stack
+	Stack* stack = (Stack*) malloc(sizeof(stack));
+	stack->mem = malloc(memSize);
+	stack->head = ((stackElement*) stack->mem) - 1;
 }
 
-void removeAndFreeHead(stackElement** head){ //replaces head with head-> next
-	stackElement* prevHead = *head;
-	*head = (*head)->next;
-	free(prevHead);
+void push(Stack* st, stackElement* toAdd){
+	st->head = (stackElement*) (st->head + sizeof(stackElement)); //shift the pointer to the next location
+	*st->head = *toAdd; //the VALUE of head (what's actually in memory) is equal to the VALUE of toAdd
 }
 
-void popAndExecute(stackElement** head){
-	stackElement* executor = *head;
-	executor->function(executor->arg);
-	removeAndFreeHead(head);
+/*IMPORTANT NOTE - this function basically returns a pointer to the top of the stack. This means that the following:
+stackElement* var = pop(stack);
+stackElement* newStackElement = [declaration];
+push(stack, newStackElement);
+execute(var)
+Will fail, and newStackElement will atually be executed. This is because the top of the stack is freed for replacement.
+The reason it is done this way is it is assumed that pop will be used immediately and then be thrown away.
+An alternative would be to have a reserved space (an eden space, per se) for the most recently popped, and it will only be replaced on a new pop.
+This is a viable option and is up for discussion. */
+stackElement* pop(Stack* st){
+	stackElement* temp = (stackElement*) st->head;
+	st->head = (stackElement*) (st->head - sizeof(stackElement));
+	return temp;
 }
