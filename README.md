@@ -10,4 +10,4 @@ This is done by storing a function pointer (and associated argument, all instruc
 
 ## Stack
 
-The stack is present in `stack.c`, and is a raw stack of structs (stackElements). This is currently on a separate branch and the master branch uses a linked list.
+The stack is present in `stack.c`, and is a raw stack of structs (stackElements). There are helper functions to push and pop to the stack, and they both take a pointer to a stack struct (which MUST be set up appropriately).
