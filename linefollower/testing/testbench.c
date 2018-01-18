@@ -1,13 +1,13 @@
 #include "stack.c"
 #include <stdio.h>
 
-#define STACK_SIZE 20
+int STACK_SIZE = (20 * sizeof(stackElement));
 
 
 void printStack(Stack* st){
-	printf("The stack starts at: %p and is %i bytes long\n", st->mem, STACK_SIZE);
+	printf("The stack starts at: %p and is %d bytes long\n", st->mem, STACK_SIZE);
 	printf("The top is at %p\n",st->head);
-	for(int i = 0; i < STACK_SIZE; ++i){
+	for(int i = 0; i < STACK_SIZE; i += sizeof(stackElement)){
 		void* ptr = (((stackElement*) st->mem) + i); //the cast to stackElement* here is just to get the size to work with the +i, you can't do arithmetic with void pointers
 		printf("%p ", ptr);
 		if (ptr == st->mem){
@@ -19,7 +19,7 @@ void printStack(Stack* st){
 		else {
 			printf("\t\t");
 		}
-		printf("%p\n", ((stackElement*) ptr)->function);
+		printf("%p (%i)\n", ((stackElement*) ptr)->function, ((stackElement*)ptr)->arg);
 	}
 }
 
@@ -43,6 +43,8 @@ void function4(int x){
 
 int main(int argc, char* argv[]){
 	Stack* stack = setup(STACK_SIZE); //initialize a stack of 20 bytes
+
+	printf("a stackElement is %i bytes long\n", (int) sizeof(stackElement));
 
 	// printStack(stack);
 
@@ -68,9 +70,11 @@ int main(int argc, char* argv[]){
 	temp.arg=1;
 	push(stack, &temp);
 
+
 	stackElement* popped = NULL;
 	for (int i = 0; i < 5; ++i)
 	{
+		printStack(stack);
 		popped = pop(stack);
 		popped->function(popped->arg);
 	}
