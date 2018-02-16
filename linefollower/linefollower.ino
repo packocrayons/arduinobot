@@ -1,6 +1,5 @@
 #include "stack.c"
 
-
 // wired connections
 #define HG7881_B_IA 10 // D10 --> Motor B Input A --> MOTOR B +
 #define HG7881_B_IB 9 // D11 --> Motor B Input B --> MOTOR B -
@@ -16,10 +15,23 @@
 #define MOTOR_A_DIR HG7881_A_IB // Motor B Direction
 
 
+#define RIGHT_LFOLLOW_SENSOR_MASK 0b01000000
+#define RIGHT_SENSOR_PIN 7
+#define RIGHT_LFOLLOW_SENSOR_SHIFT 6
+#define LEFT_LFOLLOW_SENSOR_MASK 0b10000000
+#define LEFT_SENSOR_PIN 8
+#define LEFT_LFOLLOW_SENSOR_SHIFT 7
+#define LTURN_SENSOR_MASK 0b00100000
+#define LTURN_SENSOR_SHIFT 5
+#define FORWARD_SENSOR_MASK 0b00010000
+#define FORWARD_SENSOR_SHIFT 4
 
-#define LSENSOR 8
-#define RSENSOR 7
 
+
+
+char readSensors(){
+//natey boy
+}
 
 void forwardMotorA(int speed){
 	digitalWrite(MOTOR_A_DIR, HIGH);
@@ -69,51 +81,40 @@ void stopAllMotors(){
 	stopMotorB();
 }
 
-/*
-Returns an angle in degrees of the current direction measured by the onboard compass
-*/
-int readMagnetometer(){
-
-}
-
-/*
-CONTROVERSY GOES HERE: a decision will always involve a turn. I believe this is a reasonable assumption and the 
-function declaration matches the required protocol (void FUNCTION|(int arg)) in order to
-be stackable. For a decision that involves going straight, an angle of 0 can be specified
-*/
-/*
-DecisionTurn is just a wrapper for a turn that's special. This allows the processor to
-pick it up (any pointer to this function is the same as any other pointer to this function).
-The OTHER option will be pushed onto the stack when a decision is made.
-*/
-void decisionTurn(int angle){ 
-	turn(angle);
-}
 
 
-/*
-Angles will be clockwise, for any angle greater than 180, robot will turn to the left instead of the right.
-*/
-void turn(int angle){
-	int originalAngle = readMagnetometer();
-	int desiredNewAngle = originalAngle + angle; //calculate the angle we want to rotate until
-	if (desiredNewAngle > 360) desiredNewAngle -= 360; //ie - 270 current, request rotation of 270 (90 degrees counter clockwise). (270 + 270) - 360 = 180. The new angle is 180 degrees, which is 90 degrees counter-clockwise of the original angle
-
-	if(angle > 180){
-		startTurnLeft();
-	} else{
-		startTurnRight();
-	}
-
-	while(readMagnetometer() != desiredNewAngle); //stick in this while loop and keep reading the magnetometer. We may want to add tolerance into this or stop a little early (the motors wind down and add a little bit extra)
-	stopAllMotors();
+void turnLeft(){
+	//natey
 }
 
 
 /*
 This should also deal with hitting walls/tape on the side. It may take some approximation for distance since bounding off walls may add a bit of distance
 */
-void goStraight(int distance){
+
+void makeDecision(){
+	if (sensors & LTURN_SENSOR_MASK){ //left turn sensor
+		turnLeft()
+	}
+
+
+}
+
+
+void goStraight(char sensors){
+	//This is all old code to follow a line
+
+	bool rightSensor = sensors & 0b01000000;
+	bool leftSensor = sensors & 0b1000000;
+	forwardMotorA(120);
+	forwardMotorB(120);
+	if (rightSensor == HIGH){
+		stopMotorA();
+	}
+	if (leftSensor == HIGH){
+		stopMotorB();
+	}
+
 
 }
 
@@ -126,23 +127,14 @@ void setup() {
 	pinMode(MOTOR_B_DIR, OUTPUT);
 	pinMode(MOTOR_B_PWM, OUTPUT);
 	//7 and 8 are the IR inputs
-	pinMode(7, INPUT);
-	pinMode(8, INPUT);
+	pinMode(RIGHT_SENSOR_PIN, INPUT);
+	pinMode(LEFT_SENSOR_PIN, INPUT);
 	Serial.begin(9600);
 }
 
 void loop() {
 
-	//This is all old code to follow a line
-	bool rightSensor = digitalRead(RSENSOR);
-	bool leftSensor = digitalRead(LSENSOR);
-	forwardMotorA(120);
-	forwardMotorB(120);
-	if (rightSensor == HIGH){
-		stopMotorA();
-	}
-	if (leftSensor == HIGH){
-		stopMotorB();
-	}
-	delay(10);
+	char sensors = readSensors();	
+	makeDecision(sensors);
+
 }
