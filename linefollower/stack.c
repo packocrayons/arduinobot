@@ -22,8 +22,8 @@ typedef struct Stack{
 	stackElement* head;
 } Stack;
 
-
-Stack* setup(int memSize){ //returns a void pointer to the entire stack
+//Changed 'setup()' to 'init()' to avoid duplicate prototypes
+Stack* init(int memSize){ //returns a void pointer to the entire stack
 	Stack* stack = (Stack*) malloc(sizeof(stack));
 	stack->mem = malloc(memSize);
 	stack->head = ((stackElement*) stack->mem) - sizeof(stackElement);
