@@ -129,11 +129,13 @@ This should also deal with hitting walls/tape on the side. It may take some appr
 void makeDecision(char sensors){
 	if (sensors & LTURN_SENSOR_MASK){ //left turn sensor
 		turnLeft();
+	} else {
+		followLine();
 	}
 }
 
 
-void goStraight(char sensors){
+void followLine(char sensors){
 	//This is all old code to follow a line
 
 	bool rightSensor = sensors & RIGHT_LFOLLOW_SENSOR_MASK;
