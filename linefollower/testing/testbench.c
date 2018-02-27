@@ -42,14 +42,14 @@ void function4(int x){
 
 
 int main(int argc, char* argv[]){
-	Stack* stack = setup(STACK_SIZE); //initialize a stack of 20 bytes
+	Stack* stack = init(STACK_SIZE); //initialize a stack of 20 bytes
 
 	printf("a stackElement is %i bytes long\n", (int) sizeof(stackElement));
 
 	// printStack(stack);
 
 	stackElement temp;
-	
+
 	temp.function=function1;
 	temp.arg=1;
 	push(stack, &temp);
