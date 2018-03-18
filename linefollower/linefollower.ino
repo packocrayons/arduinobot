@@ -15,28 +15,26 @@
 #define Motor_R_DIR HG7881_A_IB // Motor A Direction
 
 
-#define RIGHT_LFOLLOW_SENSOR_MASK 0b01000000
-#define RIGHT_SENSOR_PIN 7
-#define RIGHT_LFOLLOW_SENSOR_SHIFT 6
+// #define RIGHT_LFOLLOW_SENSOR_MASK 0b01000000
+// #define RIGHT_SENSOR_PIN 7
+// #define RIGHT_LFOLLOW_SENSOR_SHIFT 6
 
-#define LEFT_LFOLLOW_SENSOR_MASK 0b10000000
-#define LEFT_SENSOR_PIN 8
-#define LEFT_LFOLLOW_SENSOR_SHIFT 7
+// #define LEFT_LFOLLOW_SENSOR_MASK 0b10000000
+// #define LEFT_SENSOR_PIN 8
+// #define LEFT_LFOLLOW_SENSOR_SHIFT 7
 
-#define LTURN_SENSOR_MASK 0b00100000
-#define LTURN_SENSOR_PIN 11 //TODO Wiring dependant pin
-#define LTURN_SENSOR_SHIFT 5
+// #define LTURN_SENSOR_MASK 0b00100000
+// #define LTURN_SENSOR_PIN 11 //TODO Wiring dependant pin
+// #define LTURN_SENSOR_SHIFT 5
 
-#define FORWARD_SENSOR_MASK 0b00010000
-#define FORWARD_SENSOR_PIN 12 //TODO Wiring dependant pin
-#define FORWARD_SENSOR_SHIFT 4
+// #define FORWARD_SENSOR_MASK 0b00010000
+// #define FORWARD_SENSOR_PIN 12 //TODO Wiring dependant pin
+// #define FORWARD_SENSOR_SHIFT 4
 
-#define DEFAULT_SPEED 120
+#define DEFAULT_SPEED 150 //this is increased for ultrasonic since we need to be able to slow down.
 
 /*
 	Sensor Layout
-
-	(4)
 
 		    (3)
 
@@ -49,9 +47,18 @@ Motor L |   Bot   | Motor R
 */
 
 
+typedef struct ultraReading{
+	int leftSensor;
+	int rightSensor;
+	int frontSensor;
+} ultraReading;
 
-char readSensors(){
-//Sarah gal
+
+ultraReading readSensors(){
+	//ASSUMPTIONS 
+	//	- there is no weighting (weighting will have to be found experimentally)
+	//	- Closer to the wall means a higher number
+//Sarah this is where the driver goes
 }
 
 void forwardMotorR(int speed){
@@ -126,12 +133,10 @@ void turnLeft(){
 This should also deal with hitting walls/tape on the side. It may take some approximation for distance since bounding off walls may add a bit of distance
 */
 
-void makeDecision(char sensors){
-	if (sensors & LTURN_SENSOR_MASK){ //left turn sensor
-		turnLeft();
-	} else {
-		followLine();
-	}
+void makeDecision(ultraReading sensors){
+	leftBias = sensors.leftSensor - sensors.rightSensor; //leftbias is how much closer to the left than we are to the right
+	forwardMotorR(DERAULT_SPEED - leftBias); //if we're closer to the left, we want to slow down the right - remember leftBias can be negative if we're closer to the right
+	forwardMotorL(DEFUALT_SPEED + leftBias);
 }
 
 
@@ -168,7 +173,8 @@ void setup() {
 
 void loop() {
 
-	char sensors = readSensors();
+	
+
 	makeDecision(sensors);
 
 
