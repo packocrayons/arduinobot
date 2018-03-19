@@ -31,7 +31,15 @@
 // #define FORWARD_SENSOR_PIN 12 //TODO Wiring dependant pin
 // #define FORWARD_SENSOR_SHIFT 4
 
-#define DEFAULT_SPEED 150 //this is increased for ultrasonic since we need to be able to slow down.
+//this is increased for ultrasonic since we need to be able to slow down.
+#define DEFAULT_SPEED 150 
+
+//find this experimentally
+#define ULTRASONIC_COLLISION 100 
+
+//also should probbly be experimented with
+#define FRONT_LEFT_TURN_HYSTERESIS 10
+
 
 /*
 	Sensor Layout
@@ -111,21 +119,16 @@ void stopAllMotors(){
 
 
 
-void turnLeft(){
+void turnLeft(ultraReading sensors){
+	int oldFrontSensor = readSensors().forwardSensor;
 	bool exit = 0;
-	do {
-		forwardMotorR(DEFAULT_SPEED);
-		forwardMotorL(DEFAULT_SPEED);
-		char sensors = readSensors();
-		//If (3) is off the line turn until it is high again
-		if(!(sensors & FORWARD_SENSOR_MASK) && (sensors & LEFT_LFOLLOW_SENSOR_MASK)){
-			stopMotorL();
-			exit = 1;
-			do{
-				forwardMotorR(DEFAULT_SPEED);
-			} while (!(sensors & FORWARD_SENSOR_MASK));
-		}
-	} while (!exit);
+	stopMotorL();
+	forwardMotorR(DEFAULT_SPEED);
+	while(1) {
+		int sensorsLeft = readSensors().leftSensor;
+		if (abs(sensorsLeft - oldFrontSensor) < FRONT_LEFT_TURN_HYSTERESIS) break;
+	}
+	stopAsllMotors();
 }
 
 
@@ -134,26 +137,21 @@ This should also deal with hitting walls/tape on the side. It may take some appr
 */
 
 void makeDecision(ultraReading sensors){
-	leftBias = sensors.leftSensor - sensors.rightSensor; //leftbias is how much closer to the left than we are to the right
-	forwardMotorR(DERAULT_SPEED - leftBias); //if we're closer to the left, we want to slow down the right - remember leftBias can be negative if we're closer to the right
-	forwardMotorL(DEFUALT_SPEED + leftBias);
+	if (sensors.frontSensor > ULTRASONIC_COLLISION){
+		turnLeft(sensors);
+	} else{
+		followLine(sensors);
+	}
+
+
 }
 
 
 void followLine(char sensors){
-	//This is all old code to follow a line
-
-	bool rightSensor = sensors & RIGHT_LFOLLOW_SENSOR_MASK;
-	bool leftSensor = sensors & LEFT_LFOLLOW_SENSOR_MASK;
-	forwardMotorR(DEFAULT_SPEED);
-	forwardMotorL(DEFAULT_SPEED);
-	if (rightSensor == HIGH){
-		stopMotorR();
-	}
-	if (leftSensor == HIGH){
-		stopMotorL();
-	}
-
+	
+	leftBias = sensors.leftSensor - sensors.rightSensor; //leftbias is how much closer to the left than we are to the right
+	forwardMotorR(DERAULT_SPEED - leftBias); //if we're closer to the left, we want to slow down the right - remember leftBias can be negative if we're closer to the right
+	forwardMotorL(DEFUALT_SPEED + leftBias); //opposite for the right
 
 }
 
