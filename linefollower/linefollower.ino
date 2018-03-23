@@ -4,6 +4,7 @@
 #define HG7881_B_IA 10 // D10 --> Motor B Input A --> MOTOR B +
 #define HG7881_B_IB 9 // D11 --> Motor B Input B --> MOTOR B -
 
+//TODO Change pins to 3 and 4 to avoid arduino delay() interaction
 #define HG7881_A_IA 5 //D6 - Motor A input A
 #define HG7881_A_IB 6 //D5 - Motor A input B
 
@@ -15,6 +16,31 @@
 #define Motor_R_DIR HG7881_A_IB // Motor A Direction
 
 
+//Using bit fields would be a heavier but more readable implementation
+/*
+
+
+typedef enum {
+	LEFT = 0,
+	RIGHT = 1,
+	TURN = 3,
+	FORWARD = 4
+
+} sensorMask;
+
+//Beware system dependant endian-ness
+union sensorField {
+  	struct {
+   	bool left:1;
+   	bool right:1;
+   	bool forward:1;
+   	bool leftTurn:1;
+   	};
+   	char sensorChar;
+};
+*/
+
+
 #define RIGHT_LFOLLOW_SENSOR_MASK 0b01000000
 #define RIGHT_SENSOR_PIN 7
 #define RIGHT_LFOLLOW_SENSOR_SHIFT 6
@@ -24,14 +50,15 @@
 #define LEFT_LFOLLOW_SENSOR_SHIFT 7
 
 #define LTURN_SENSOR_MASK 0b00100000
-#define LTURN_SENSOR_PIN 11 //TODO Wiring dependant pin
+#define LTURN_SENSOR_PIN 4 //TODO Wiring dependant pin
 #define LTURN_SENSOR_SHIFT 5
 
 #define FORWARD_SENSOR_MASK 0b00010000
-#define FORWARD_SENSOR_PIN 12 //TODO Wiring dependant pin
+#define FORWARD_SENSOR_PIN 3 //TODO Wiring dependant pin
 #define FORWARD_SENSOR_SHIFT 4
 
 #define DEFAULT_SPEED 120
+
 
 /*
 	Sensor Layout
@@ -51,7 +78,27 @@ Motor L |   Bot   | Motor R
 
 
 char readSensors(){
-//Sarah gal
+//Sarah
+	/*
+	Bitfield alternative workflow
+ 	union sensorField sensors;
+	sensors.left = digitalRead(LEFT_SENSOR_PIN);
+	sensors.right = digitalRead(LEFT_SENSOR_PIN);
+	*/
+	char sensors = 0x00;
+	if (digitalRead(LEFT_SENSOR_PIN)){
+		sensors = sensors | LEFT_LFOLLOW_SENSOR_MASK;
+	}
+	if (digitalRead(RIGHT_SENSOR_PIN)){
+		sensors = sensors | RIGHT_LFOLLOW_SENSOR_MASK;
+	}
+	if (digitalRead(FORWARD_SENSOR_PIN)){
+		sensors = sensors | FORWARD_SENSOR_MASK;
+	}
+	if (digitalRead(LTURN_SENSOR_PIN)){
+		sensors = sensors | LTURN_SENSOR_MASK;
+	}
+	return sensors;
 }
 
 void forwardMotorR(int speed){
@@ -64,6 +111,11 @@ void reverseMotorR(int speed){
 	analogWrite(Motor_R_PWM, speed);
 }
 
+void stopMotorR(){
+	digitalWrite(Motor_R_DIR, LOW);
+	digitalWrite(Motor_R_PWM, LOW);
+}
+
 void forwardMotorL(int speed){
 	digitalWrite(Motor_L_DIR, HIGH);
 	analogWrite(Motor_L_PWM, 255-speed);
@@ -72,11 +124,6 @@ void forwardMotorL(int speed){
 void reverseMotorL(int speed){
 	digitalWrite(Motor_L_DIR, LOW);
 	analogWrite(Motor_L_PWM, speed);
-}
-
-void stopMotorR(){
-	digitalWrite(Motor_R_DIR, LOW);
-	digitalWrite(Motor_R_PWM, LOW);
 }
 
 void stopMotorL(){
@@ -130,7 +177,7 @@ void makeDecision(char sensors){
 	if (sensors & LTURN_SENSOR_MASK){ //left turn sensor
 		turnLeft();
 	} else {
-		followLine();
+		followLine(sensors);
 	}
 }
 
@@ -155,7 +202,7 @@ void followLine(char sensors){
 
 
 void setup() {
-	//5,6,9.10 are outputs to the half bridge
+	//3,4,9,10 are outputs to the half bridge
 	pinMode(Motor_R_DIR, OUTPUT);
 	pinMode(Motor_R_PWM, OUTPUT);
 	pinMode(Motor_L_DIR, OUTPUT);
@@ -163,13 +210,18 @@ void setup() {
 	//7 and 8 are the IR inputs
 	pinMode(RIGHT_SENSOR_PIN, INPUT);
 	pinMode(LEFT_SENSOR_PIN, INPUT);
+  pinMode(FORWARD_SENSOR_PIN, INPUT);
+  pinMode(LTURN_SENSOR_PIN, INPUT);
+	//Define Baud rate
 	Serial.begin(9600);
 }
 
 void loop() {
 
 	char sensors = readSensors();
-	makeDecision(sensors);
+	Serial.println(sensors,BIN);
+	delay(2000);
+	//makeDecision(sensors);
 
 
 }
