@@ -41,19 +41,19 @@ union sensorField {
 */
 
 
-#define RIGHT_LFOLLOW_SENSOR_MASK 0b01000000
+#define RIGHT_LFOLLOW_SENSOR_MASK B00000001
 #define RIGHT_SENSOR_PIN 7
 #define RIGHT_LFOLLOW_SENSOR_SHIFT 6
 
-#define LEFT_LFOLLOW_SENSOR_MASK 0b10000000
+#define LEFT_LFOLLOW_SENSOR_MASK B00000010
 #define LEFT_SENSOR_PIN 8
 #define LEFT_LFOLLOW_SENSOR_SHIFT 7
 
-#define LTURN_SENSOR_MASK 0b00100000
+#define LTURN_SENSOR_MASK B00000100
 #define LTURN_SENSOR_PIN 4 //TODO Wiring dependant pin
 #define LTURN_SENSOR_SHIFT 5
 
-#define FORWARD_SENSOR_MASK 0b00010000
+#define FORWARD_SENSOR_MASK B00001000
 #define FORWARD_SENSOR_PIN 3 //TODO Wiring dependant pin
 #define FORWARD_SENSOR_SHIFT 4
 
@@ -78,25 +78,25 @@ Motor L |   Bot   | Motor R
 
 
 char readSensors(){
-//Sarah
 	/*
 	Bitfield alternative workflow
  	union sensorField sensors;
 	sensors.left = digitalRead(LEFT_SENSOR_PIN);
 	sensors.right = digitalRead(LEFT_SENSOR_PIN);
 	*/
-	char sensors = 0x00;
+	char sensors = 0x00;	
+
 	if (digitalRead(LEFT_SENSOR_PIN)){
-		sensors = sensors | LEFT_LFOLLOW_SENSOR_MASK;
+		sensors += LEFT_LFOLLOW_SENSOR_MASK;
 	}
 	if (digitalRead(RIGHT_SENSOR_PIN)){
-		sensors = sensors | RIGHT_LFOLLOW_SENSOR_MASK;
+		sensors += RIGHT_LFOLLOW_SENSOR_MASK;
 	}
 	if (digitalRead(FORWARD_SENSOR_PIN)){
-		sensors = sensors | FORWARD_SENSOR_MASK;
+		sensors += FORWARD_SENSOR_MASK;
 	}
 	if (digitalRead(LTURN_SENSOR_PIN)){
-		sensors = sensors | LTURN_SENSOR_MASK;
+		sensors += LTURN_SENSOR_MASK;
 	}
 	return sensors;
 }
@@ -219,7 +219,6 @@ void setup() {
 void loop() {
 
 	char sensors = readSensors();
-	Serial.println(sensors,BIN);
 	delay(2000);
 	//makeDecision(sensors);
 
