@@ -57,7 +57,7 @@ union sensorField {
 #define FORWARD_SENSOR_PIN 3 //TODO Wiring dependant pin
 #define FORWARD_SENSOR_SHIFT 4
 
-#define DEFAULT_SPEED 120
+#define DEFAULT_SPEED 140
 
 
 /*
@@ -84,7 +84,7 @@ char readSensors(){
 	sensors.left = digitalRead(LEFT_SENSOR_PIN);
 	sensors.right = digitalRead(LEFT_SENSOR_PIN);
 	*/
-	char sensors = 0x00;	
+	char sensors = 0x00;
 
 	if (digitalRead(LEFT_SENSOR_PIN)){
 		sensors += LEFT_LFOLLOW_SENSOR_MASK;
@@ -152,20 +152,24 @@ void stopAllMotors(){
 
 
 void turnLeft(){
+  char sensors = readSensors();
 	bool exit = 0;
+  stopAllMotors();
+  delay(2000);
+	//char sensors = readSensors();
+	if(sensors & FORWARD_SENSOR_MASK){
+		//Turn until forward sensor is off the line
+		do{
+			sensors = readSensors();
+			forwardMotorR(DEFAULT_SPEED);
+		} while (sensors & FORWARD_SENSOR_MASK);
+	}
+
 	do {
+		sensors = readSensors();
 		forwardMotorR(DEFAULT_SPEED);
-		forwardMotorL(DEFAULT_SPEED);
-		char sensors = readSensors();
-		//If (3) is off the line turn until it is high again
-		if(!(sensors & FORWARD_SENSOR_MASK) && (sensors & LEFT_LFOLLOW_SENSOR_MASK)){
-			stopMotorL();
-			exit = 1;
-			do{
-				forwardMotorR(DEFAULT_SPEED);
-			} while (!(sensors & FORWARD_SENSOR_MASK));
-		}
-	} while (!exit);
+	} while (!(sensors & FORWARD_SENSOR_MASK));
+
 }
 
 
@@ -175,6 +179,8 @@ This should also deal with hitting walls/tape on the side. It may take some appr
 
 void makeDecision(char sensors){
 	if (sensors & LTURN_SENSOR_MASK){ //left turn sensor
+    
+    Serial.println("Reaching turnLeft");
 		turnLeft();
 	} else {
 		followLine(sensors);
@@ -184,7 +190,7 @@ void makeDecision(char sensors){
 
 void followLine(char sensors){
 	//This is all old code to follow a line
-
+  Serial.println("Following Line");
 	bool rightSensor = sensors & RIGHT_LFOLLOW_SENSOR_MASK;
 	bool leftSensor = sensors & LEFT_LFOLLOW_SENSOR_MASK;
 	forwardMotorR(DEFAULT_SPEED);
@@ -210,17 +216,17 @@ void setup() {
 	//7 and 8 are the IR inputs
 	pinMode(RIGHT_SENSOR_PIN, INPUT);
 	pinMode(LEFT_SENSOR_PIN, INPUT);
-  pinMode(FORWARD_SENSOR_PIN, INPUT);
-  pinMode(LTURN_SENSOR_PIN, INPUT);
+  	pinMode(FORWARD_SENSOR_PIN, INPUT);
+  	pinMode(LTURN_SENSOR_PIN, INPUT);
 	//Define Baud rate
 	Serial.begin(9600);
 }
 
 void loop() {
 
-	char sensors = readSensors();
-	delay(2000);
-	//makeDecision(sensors);
+	  char sensors = readSensors();
+	  makeDecision(sensors);
+
 
 
 }
