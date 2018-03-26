@@ -1,5 +1,3 @@
-//#include "stack.c"
-
 // wired connections
 #define HG7881_B_IA 10 // D10 --> Motor B Input A --> MOTOR B +
 #define HG7881_B_IB 9 // D11 --> Motor B Input B --> MOTOR B -
@@ -57,7 +55,13 @@ union sensorField {
 #define FORWARD_SENSOR_PIN 3 //TODO Wiring dependant pin
 #define FORWARD_SENSOR_SHIFT 4
 
+#define WIN_CONDITION_MASK B00000111
+
 #define DEFAULT_SPEED 140
+
+// TODO: THIS CONSTANT NEEDS TO BE TUNED
+#define TURNAROUND_TIME 100
+
 
 
 /*
@@ -150,24 +154,53 @@ void stopAllMotors(){
 }
 
 
+void win(){
+	stopAllMotors();
+	delay(5000);
+	forwardMotorR(200);
+	reverseMotorL(200);
 
-void turnLeft(){
-  char sensors = readSensors();
+}
+
+
+void turnAround(){
+	forwardMotorL(DEFAULT_SPEED);
+	reverseMotorR(DEFUALT_SPEED);
+	delay(TURNAROUND_TIME);
+	while(!(readSensors() & FORWARD_SENSOR_MASK)){//poll the front sensor until it hits the line
+		//delay(1);
+	}
+	stopAllMotors();
+}
+
+void turn(bool left){
+	forwardMotorR(DEFAULT_SPEED); //take a jump forward
+	forwardMotorL(DEFAULT_SPEED);
+	delay(10);
+	stopAllMotors();
+  	char sensors = readSensors();
 	bool exit = 0;
-  stopAllMotors();
-  delay(2000);
+  	delay(2000);
 	//char sensors = readSensors();
 	if(sensors & FORWARD_SENSOR_MASK){
 		//Turn until forward sensor is off the line
 		do{
 			sensors = readSensors();
-			forwardMotorR(DEFAULT_SPEED);
+			if (left){
+				forwardMotorR(DEFAULT_SPEED);
+			} else {
+				forwardMotorL(DEFAULT_SPEED);
+			}
 		} while (sensors & FORWARD_SENSOR_MASK);
 	}
 
 	do {
 		sensors = readSensors();
-		forwardMotorR(DEFAULT_SPEED);
+		if (left){
+			forwardMotorR(DEFAULT_SPEED);
+		} else {
+			forwardMotorL(DEFAULT_SPEED);
+		}
 	} while (!(sensors & FORWARD_SENSOR_MASK));
 
 }
@@ -178,19 +211,32 @@ This should also deal with hitting walls/tape on the side. It may take some appr
 */
 
 void makeDecision(char sensors){
-	if (sensors & LTURN_SENSOR_MASK){ //left turn sensor
-    
-    Serial.println("Reaching turnLeft");
-		turnLeft();
+
+	if (sensors & LTURN_SENSOR_MASK){ //left turn sensor    
+	    Serial.println("Reaching turnLeft");
+		turn(true);
 	} else {
 		followLine(sensors);
+	}
+	
+	if (!(sensors & FORWARD_SENSOR_MASK)){
+		stopAllMotors();
+		delay(100); //making an assumption that we'll coast to the line
+		if (sensors & RIGHT_LFOLLOW_SENSOR_MASK){
+			turn(false);
+		} else{
+			turnAround();
+		}
+	}
+	if (sensors & WIN_CONDITION_MASK){
+		win();		
 	}
 }
 
 
 void followLine(char sensors){
 	//This is all old code to follow a line
-  Serial.println("Following Line");
+  	Serial.println("Following Line");
 	bool rightSensor = sensors & RIGHT_LFOLLOW_SENSOR_MASK;
 	bool leftSensor = sensors & LEFT_LFOLLOW_SENSOR_MASK;
 	forwardMotorR(DEFAULT_SPEED);
@@ -201,8 +247,6 @@ void followLine(char sensors){
 	if (leftSensor == HIGH){
 		stopMotorL();
 	}
-
-
 }
 
 
@@ -224,9 +268,7 @@ void setup() {
 
 void loop() {
 
-	  char sensors = readSensors();
-	  makeDecision(sensors);
-
-
+	char sensors = readSensors();
+	makeDecision(sensors);
 
 }
