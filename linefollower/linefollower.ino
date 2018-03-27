@@ -1,5 +1,3 @@
-//#include "stack.c"
-
 // wired connections
 #define HG7881_B_IA 10 // D10 --> Motor B Input A --> MOTOR B +
 #define HG7881_B_IB 9 // D11 --> Motor B Input B --> MOTOR B -
@@ -39,6 +37,8 @@
 
 //also should probbly be experimented with
 #define FRONT_LEFT_TURN_HYSTERESIS 10
+
+#define ONLY_RIGHT_HYSTERESIS 250
 
 
 /*
@@ -119,16 +119,27 @@ void stopAllMotors(){
 
 
 
-void turnLeft(ultraReading sensors){
+void turn(ultraReading sensors, bool left){
+	stopAllMotors();
+	delay(100);
 	int oldFrontSensor = readSensors().forwardSensor;
 	bool exit = 0;
-	stopMotorL();
-	forwardMotorR(DEFAULT_SPEED);
-	while(1) {
-		int sensorsLeft = readSensors().leftSensor;
-		if (abs(sensorsLeft - oldFrontSensor) < FRONT_LEFT_TURN_HYSTERESIS) break;
+	if (left){
+		reverseMotorL(DEFAULT_SPEED);
+		forwardMotorR(DEFAULT_SPEED);
+		while(1) {
+			int sensorsRight = readSensors().rightSensor;
+			if (abs(sensorsRight - oldFrontSensor) < FRONT_LEFT_TURN_HYSTERESIS) break;
+		}
+	} else {
+		reverseMotorR(DEFAULT_SPEED);
+		forwardMotorL(DEFAULT_SPEED);
+		while(1) {
+			int sensorsLeft = readSensors().leftSensor;
+			if (abs(sensorsLeft - oldFrontSensor) < FRONT_LEFT_TURN_HYSTERESIS) break;
+		}
 	}
-	stopAsllMotors();
+	stopAllMotors();
 }
 
 
@@ -138,7 +149,10 @@ This should also deal with hitting walls/tape on the side. It may take some appr
 
 void makeDecision(ultraReading sensors){
 	if (sensors.frontSensor > ULTRASONIC_COLLISION){
-		turnLeft(sensors);
+		if ((leftSensor - rightSensor) > ONLY_RIGHT_HYSTERESIS){
+			turn(sensors, false);
+		}
+		turn(sensors, true);
 	} else{
 		followLine(sensors);
 	}
@@ -177,3 +191,4 @@ void loop() {
 
 
 }
+	
