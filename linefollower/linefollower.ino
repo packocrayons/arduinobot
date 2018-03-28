@@ -86,8 +86,7 @@ bool motorRRunning = false;
 bool motorLRunning = true;
 unsigned long forwardSamples = 0;
 
-
-char readSensors(){
+char readSensors(bool useHysteresis){
 	/*
 	Bitfield alternative workflow
  	union sensorField sensors;
@@ -107,22 +106,28 @@ char readSensors(){
 		sensors += LTURN_SENSOR_MASK;
 	}
 
-  forwardSamples = forwardSamples << 1;
-  unsigned long temp = digitalRead(FORWARD_SENSOR_PIN);
-  forwardSamples += temp;
-  Serial.print("digitalRead: ");
-  Serial.println(temp);
-  
-  long samplesHigh = 0;
-  for(int i = 0; i < sizeof(forwardSamples) * 8; i++){
-    samplesHigh += ((1 << i) & forwardSamples) > 0 ? 1 : 0;
-  }
-  if(samplesHigh > SAMPLE_HYSTERESIS){
-    sensors += FORWARD_SENSOR_MASK;
-    digitalWrite(13, HIGH);  
-  } else {
-    digitalWrite(13, LOW);
-  }
+	if (useHysteresis){
+	  forwardSamples = forwardSamples << 1;
+	  unsigned long temp = digitalRead(FORWARD_SENSOR_PIN);
+	  forwardSamples += temp;
+	  Serial.print("digitalRead: ");
+	  Serial.println(temp);
+	  
+	  long samplesHigh = 0;
+	  for(int i = 0; i < sizeof(forwardSamples) * 8; i++){
+	    samplesHigh += ((1 << i) & forwardSamples) > 0 ? 1 : 0;
+	  }
+	  if(samplesHigh > SAMPLE_HYSTERESIS){
+	    sensors += FORWARD_SENSOR_MASK;
+	    digitalWrite(13, HIGH);  
+	  } else {
+	    digitalWrite(13, LOW);
+	  }
+	} else {
+		if (digitalRead(FORWARD_SENSOR_PIN)){
+			sensors += FORWARD_SENSOR_MASK;
+		}		
+	}
 
   
 
@@ -220,7 +225,12 @@ void win(){
 	delay(5000);
 	forwardMotorR(200);
 	reverseMotorL(200);
-
+	while(1){
+		digitalWrite(13, HIGH); //blink the light so we know it's won
+		delay(100);
+		digitalWrite(13, LOW);
+		delay(100);
+	}
 }
 
 
@@ -228,7 +238,7 @@ void turnAround(){
 	forwardMotorL(DEFAULT_SPEED);
 	reverseMotorR(DEFAULT_SPEED);
 	delay(TURNAROUND_TIME);
-	while(!(readSensors() & FORWARD_SENSOR_MASK)){//poll the front sensor until it hits the line
+	while(!(readSensors(false) & FORWARD_SENSOR_MASK)){//poll the front sensor until it hits the line
 		//delay(1);
 	}
 	stopAllMotors();
@@ -239,14 +249,14 @@ void turn(bool left){
 	//forwardMotorL(DEFAULT_SPEED);
 	//delay(10);
 	stopAllMotors();
-  char sensors = readSensors();
+  char sensors = readSensors(false);
 	bool exit = 0;
   delay(2000);
 	//char sensors = readSensors();
 	if(sensors & FORWARD_SENSOR_MASK){
 		//Turn until forward sensor is off the line
 		do{
-			sensors = readSensors();
+			sensors = readSensors(false);
 			if (left){
 				forwardMotorR(DEFAULT_SPEED);
 			} else {
@@ -256,7 +266,7 @@ void turn(bool left){
 	}
 
 	do {
-		sensors = readSensors();
+		sensors = readSensors(false);
 		if (left){
 			forwardMotorR(DEFAULT_SPEED);
 		} else {
@@ -314,11 +324,11 @@ void followLine(char sensors){
 	forwardMotorL(DEFAULT_SPEED);
 	if (rightSensor == HIGH){
 		stopMotorR();
-   delay(5);
+   		delay(5);
 	}
 	if (leftSensor == HIGH){
 		stopMotorL();
-    delay(5);
+    	delay(5);
 	}
 }
 
@@ -342,7 +352,7 @@ void setup() {
 
 void loop() {
 
-	char sensors = readSensors();
+	char sensors = readSensors(true);
 	makeDecision(sensors);
 
 }
