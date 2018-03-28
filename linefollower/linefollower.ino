@@ -57,7 +57,8 @@ union sensorField {
 
 #define WIN_CONDITION_MASK B00000111
 
-#define DEFAULT_SPEED 140
+#define DEFAULT_SPEED 60
+#define START_SPEED 90
 
 // TODO: THIS CONSTANT NEEDS TO BE TUNED
 #define TURNAROUND_TIME 100
@@ -79,6 +80,9 @@ Motor L |   Bot   | Motor R
 		-----------
 */
 
+
+bool motorRRunning = false;
+bool motorLRunning = true;
 
 
 char readSensors(){
@@ -106,11 +110,23 @@ char readSensors(){
 }
 
 void forwardMotorR(int speed){
+	if (!motorRRunning){
+		digitalWrite(Motor_R_DIR, HIGH);
+		analogWrite(Motor_R_PWM, 255-START_SPEED);	
+		delay(5);
+		motorRRunning = true;
+	}
 	digitalWrite(Motor_R_DIR, HIGH);
 	analogWrite(Motor_R_PWM, 255-speed);
 }
 
 void reverseMotorR(int speed){
+	if (!motorRRunning){
+		digitalWrite(Motor_R_DIR, LOW);
+		analogWrite(Motor_R_PWM, START_SPEED);	
+		delay(5)
+		motorRRunning = true;
+	}
 	digitalWrite(Motor_R_DIR, LOW);
 	analogWrite(Motor_R_PWM, speed);
 }
@@ -118,14 +134,28 @@ void reverseMotorR(int speed){
 void stopMotorR(){
 	digitalWrite(Motor_R_DIR, LOW);
 	digitalWrite(Motor_R_PWM, LOW);
+	motorRRunning = false;
+
 }
 
 void forwardMotorL(int speed){
+	if (!motorLRunning){
+		digitalWrite(Motor_L_DIR, HIGH);
+		analogWrite(Motor_L_PWM, 255-START_SPEED);	
+		delay(5);
+		motorLRunning = true;
+	}
 	digitalWrite(Motor_L_DIR, HIGH);
 	analogWrite(Motor_L_PWM, 255-speed);
 }
 
 void reverseMotorL(int speed){
+	if (!motorLRunning){
+		digitalWrite(Motor_L_DIR, LOW);
+		analogWrite(Motor_L_PWM, START_SPEED);
+		delay(5);
+		motorLRunning = true;
+	}
 	digitalWrite(Motor_L_DIR, LOW);
 	analogWrite(Motor_L_PWM, speed);
 }
@@ -133,6 +163,7 @@ void reverseMotorL(int speed){
 void stopMotorL(){
 	digitalWrite(Motor_L_DIR, LOW);
 	digitalWrite(Motor_L_PWM, LOW);
+	motorLRunning=false;
 }
 
 //Speeds and motor assignments should be checked empirically
