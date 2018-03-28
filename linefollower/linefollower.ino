@@ -57,11 +57,12 @@ union sensorField {
 
 #define WIN_CONDITION_MASK B00000111
 
-#define DEFAULT_SPEED 60
-#define START_SPEED 90
+#define DEFAULT_SPEED 130
+#define START_SPEED 100
 
 // TODO: THIS CONSTANT NEEDS TO BE TUNED
-#define TURNAROUND_TIME 100
+#define TURNAROUND_TIME 80
+#define SAMPLE_HYSTERESIS 10
 
 
 
@@ -83,6 +84,7 @@ Motor L |   Bot   | Motor R
 
 bool motorRRunning = false;
 bool motorLRunning = true;
+unsigned long forwardSamples = 0;
 
 
 char readSensors(){
@@ -94,39 +96,62 @@ char readSensors(){
 	*/
 	char sensors = 0x00;
 
+
 	if (digitalRead(LEFT_SENSOR_PIN)){
 		sensors += LEFT_LFOLLOW_SENSOR_MASK;
 	}
 	if (digitalRead(RIGHT_SENSOR_PIN)){
 		sensors += RIGHT_LFOLLOW_SENSOR_MASK;
 	}
-	if (digitalRead(FORWARD_SENSOR_PIN)){
-		sensors += FORWARD_SENSOR_MASK;
-	}
 	if (digitalRead(LTURN_SENSOR_PIN)){
 		sensors += LTURN_SENSOR_MASK;
 	}
+
+  forwardSamples = forwardSamples << 1;
+  unsigned long temp = digitalRead(FORWARD_SENSOR_PIN);
+  forwardSamples += temp;
+  Serial.print("digitalRead: ");
+  Serial.println(temp);
+  
+  long samplesHigh = 0;
+  for(int i = 0; i < sizeof(forwardSamples) * 8; i++){
+    samplesHigh += ((1 << i) & forwardSamples) > 0 ? 1 : 0;
+  }
+  if(samplesHigh > SAMPLE_HYSTERESIS){
+    sensors += FORWARD_SENSOR_MASK;
+    digitalWrite(13, HIGH);  
+  } else {
+    digitalWrite(13, LOW);
+  }
+
+  
+
+  
 	return sensors;
 }
 
 void forwardMotorR(int speed){
+  /*
 	if (!motorRRunning){
 		digitalWrite(Motor_R_DIR, HIGH);
 		analogWrite(Motor_R_PWM, 255-START_SPEED);	
-		delay(5);
+		delay(1);
 		motorRRunning = true;
 	}
+ */
 	digitalWrite(Motor_R_DIR, HIGH);
 	analogWrite(Motor_R_PWM, 255-speed);
 }
 
 void reverseMotorR(int speed){
+  /*
 	if (!motorRRunning){
 		digitalWrite(Motor_R_DIR, LOW);
 		analogWrite(Motor_R_PWM, START_SPEED);	
-		delay(5)
+		delay(1);
 		motorRRunning = true;
 	}
+ */
 	digitalWrite(Motor_R_DIR, LOW);
 	analogWrite(Motor_R_PWM, speed);
 }
@@ -139,23 +164,28 @@ void stopMotorR(){
 }
 
 void forwardMotorL(int speed){
+  /*
 	if (!motorLRunning){
 		digitalWrite(Motor_L_DIR, HIGH);
 		analogWrite(Motor_L_PWM, 255-START_SPEED);	
-		delay(5);
+		delay(1);
 		motorLRunning = true;
 	}
+ */
+ 
 	digitalWrite(Motor_L_DIR, HIGH);
 	analogWrite(Motor_L_PWM, 255-speed);
 }
 
 void reverseMotorL(int speed){
+  /*
 	if (!motorLRunning){
 		digitalWrite(Motor_L_DIR, LOW);
 		analogWrite(Motor_L_PWM, START_SPEED);
-		delay(5);
+		delay(1);
 		motorLRunning = true;
 	}
+ */
 	digitalWrite(Motor_L_DIR, LOW);
 	analogWrite(Motor_L_PWM, speed);
 }
@@ -196,7 +226,7 @@ void win(){
 
 void turnAround(){
 	forwardMotorL(DEFAULT_SPEED);
-	reverseMotorR(DEFUALT_SPEED);
+	reverseMotorR(DEFAULT_SPEED);
 	delay(TURNAROUND_TIME);
 	while(!(readSensors() & FORWARD_SENSOR_MASK)){//poll the front sensor until it hits the line
 		//delay(1);
@@ -205,13 +235,13 @@ void turnAround(){
 }
 
 void turn(bool left){
-	forwardMotorR(DEFAULT_SPEED); //take a jump forward
-	forwardMotorL(DEFAULT_SPEED);
-	delay(10);
+	//forwardMotorR(DEFAULT_SPEED); //take a jump forward
+	//forwardMotorL(DEFAULT_SPEED);
+	//delay(10);
 	stopAllMotors();
-  	char sensors = readSensors();
+  char sensors = readSensors();
 	bool exit = 0;
-  	delay(2000);
+  delay(2000);
 	//char sensors = readSensors();
 	if(sensors & FORWARD_SENSOR_MASK){
 		//Turn until forward sensor is off the line
@@ -244,23 +274,33 @@ This should also deal with hitting walls/tape on the side. It may take some appr
 void makeDecision(char sensors){
 
 	if (sensors & LTURN_SENSOR_MASK){ //left turn sensor    
-	    Serial.println("Reaching turnLeft");
+	  Serial.println("Reaching turnLeft");
 		turn(true);
+    return;
+	} else if (!(sensors & FORWARD_SENSOR_MASK)){
+	  
+    stopAllMotors();
+    delay(10); //making an assumption that we'll coast to the line
+    if (sensors & RIGHT_LFOLLOW_SENSOR_MASK){
+      Serial.println("Reaching Turn Right");
+      turn(false);
+      
+      return;
+    } else {
+      Serial.println("Reaching Turn Around");
+      turnAround();
+      return;
+    }
 	} else {
+    Serial.println("Reaching followLine");
 		followLine(sensors);
+    return;
 	}
-	
-	if (!(sensors & FORWARD_SENSOR_MASK)){
-		stopAllMotors();
-		delay(100); //making an assumption that we'll coast to the line
-		if (sensors & RIGHT_LFOLLOW_SENSOR_MASK){
-			turn(false);
-		} else{
-			turnAround();
-		}
-	}
+
+ 
 	if (sensors & WIN_CONDITION_MASK){
-		win();		
+		win();
+    return;		
 	}
 }
 
@@ -274,9 +314,11 @@ void followLine(char sensors){
 	forwardMotorL(DEFAULT_SPEED);
 	if (rightSensor == HIGH){
 		stopMotorR();
+   delay(5);
 	}
 	if (leftSensor == HIGH){
 		stopMotorL();
+    delay(5);
 	}
 }
 
@@ -288,6 +330,7 @@ void setup() {
 	pinMode(Motor_R_PWM, OUTPUT);
 	pinMode(Motor_L_DIR, OUTPUT);
 	pinMode(Motor_L_PWM, OUTPUT);
+  pinMode(13, OUTPUT);
 	//7 and 8 are the IR inputs
 	pinMode(RIGHT_SENSOR_PIN, INPUT);
 	pinMode(LEFT_SENSOR_PIN, INPUT);
