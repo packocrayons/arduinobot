@@ -13,35 +13,37 @@
 #define Motor_R_PWM HG7881_A_IA // Motor A PWM Speed
 #define Motor_R_DIR HG7881_A_IB // Motor A Direction
 
+#define MOTOR_REDUCTION 30
+
 
 //Using bit fields would be a heavier but more readable implementation
 /*
 
 
 typedef enum {
-	LEFT = 0,
-	RIGHT = 1,
-	TURN = 3,
-	FORWARD = 4
+LEFT = 0,
+RIGHT = 1,
+TURN = 3,
+FORWARD = 4
 
 } sensorMask;
 
 //Beware system dependant endian-ness
 union sensorField {
-  	struct {
-   	bool left:1;
-   	bool right:1;
-   	bool forward:1;
-   	bool leftTurn:1;
-   	};
-   	char sensorChar;
+struct {
+bool left:1;
+bool right:1;
+bool forward:1;
+bool leftTurn:1;
+};
+char sensorChar;
 };
 */
 
 #define ANALOG_BATT_PIN 0
 //the analog reading at which the battery is dead - this is a cell at ~3.4 volts
 //#define BATTERY_DEAD 700
-#define BATTERY_DEAD 0
+#define BATTERY_DEAD 600
 
 
 #define RIGHT_LFOLLOW_SENSOR_MASK B00000001
@@ -66,7 +68,7 @@ union sensorField {
 
 #define WIN_CONDITION_MASK B00000111
 
-#define DEFAULT_SPEED 150
+#define DEFAULT_SPEED 135
 #define START_SPEED 100
 
 // TODO: THIS CONSTANT NEEDS TO BE TUNED
@@ -76,18 +78,18 @@ union sensorField {
 
 
 /*
-	Sensor Layout
+Sensor Layout
 
-	(4)
+(4)
 
-		    (3)
+(3)
 
-		(1)		(2)
-		-----------
-		|         |
+(1)		(2)
+-----------
+|         |
 Motor L |   Bot   | Motor R
-		|         |
-		-----------
+|         |
+-----------
 */
 
 
@@ -98,7 +100,7 @@ unsigned long forwardSamples = 0;
 char readSensors(bool useHysteresis){
 	/*
 	Bitfield alternative workflow
- 	union sensorField sensors;
+	union sensorField sensors;
 	sensors.left = digitalRead(LEFT_SENSOR_PIN);
 	sensors.right = digitalRead(LEFT_SENSOR_PIN);
 	*/
@@ -114,26 +116,26 @@ char readSensors(bool useHysteresis){
 	if (digitalRead(LTURN_SENSOR_PIN)){
 		sensors += LTURN_SENSOR_MASK;
 	}
-  if (digitalRead(RTURN_SENSOR_PIN)){
-    sensors += RTURN_SENSOR_MASK;
-  }
+	if (digitalRead(RTURN_SENSOR_PIN)){
+		sensors += RTURN_SENSOR_MASK;
+	}
 	if (useHysteresis){
-	  forwardSamples = forwardSamples << 1;
-	  unsigned long temp = digitalRead(FORWARD_SENSOR_PIN);
-	  forwardSamples += temp;
-	  //Serial.print("digitalRead: ");
-	  //Serial.println(temp);
+		forwardSamples = forwardSamples << 1;
+		unsigned long temp = digitalRead(FORWARD_SENSOR_PIN);
+		forwardSamples += temp;
+		//Serial.print("digitalRead: ");
+		//Serial.println(temp);
 
-	  long samplesHigh = 0;
-	  for(int i = 0; i < sizeof(forwardSamples) * 8; i++){
-	    samplesHigh += ((1 << i) & forwardSamples) > 0 ? 1 : 0;
-	  }
-	  if(samplesHigh > SAMPLE_HYSTERESIS){
-	    sensors += FORWARD_SENSOR_MASK;
-	    digitalWrite(13, HIGH);
-	  } else {
-	    digitalWrite(13, LOW);
-	  }
+		long samplesHigh = 0;
+		for(int i = 0; i < sizeof(forwardSamples) * 8; i++){
+			samplesHigh += ((1 << i) & forwardSamples) > 0 ? 1 : 0;
+		}
+		if(samplesHigh > SAMPLE_HYSTERESIS){
+			sensors += FORWARD_SENSOR_MASK;
+			digitalWrite(13, HIGH);
+		} else {
+			digitalWrite(13, LOW);
+		}
 	} else {
 		if (digitalRead(FORWARD_SENSOR_PIN)){
 			sensors += FORWARD_SENSOR_MASK;
@@ -144,6 +146,8 @@ char readSensors(bool useHysteresis){
 }
 
 void checkBatteryVoltage(){
+	Serial.print("Battery Voltage: ");
+	Serial.println(analogRead(ANALOG_BATT_PIN));
 	if (analogRead(ANALOG_BATT_PIN) < BATTERY_DEAD){
 		stopAllMotors();
 		while(1){
@@ -157,29 +161,29 @@ void checkBatteryVoltage(){
 
 
 void forwardMotorR(int speed){
-  /*
+	/*
 	if (!motorRRunning){
-		digitalWrite(Motor_R_DIR, HIGH);
-		analogWrite(Motor_R_PWM, 255-START_SPEED);
-		delay(1);
-		motorRRunning = true;
-	}
- */
 	digitalWrite(Motor_R_DIR, HIGH);
-	analogWrite(Motor_R_PWM, 255-speed);
+	analogWrite(Motor_R_PWM, 255-START_SPEED);
+	delay(1);
+	motorRRunning = true;
+}
+*/
+digitalWrite(Motor_R_DIR, HIGH);
+analogWrite(Motor_R_PWM, 255-speed);
 }
 
 void reverseMotorR(int speed){
-  /*
+	/*
 	if (!motorRRunning){
-		digitalWrite(Motor_R_DIR, LOW);
-		analogWrite(Motor_R_PWM, START_SPEED);
-		delay(1);
-		motorRRunning = true;
-	}
- */
 	digitalWrite(Motor_R_DIR, LOW);
-	analogWrite(Motor_R_PWM, speed);
+	analogWrite(Motor_R_PWM, START_SPEED);
+	delay(1);
+	motorRRunning = true;
+}
+*/
+digitalWrite(Motor_R_DIR, LOW);
+analogWrite(Motor_R_PWM, speed);
 }
 
 void stopMotorR(){
@@ -190,30 +194,30 @@ void stopMotorR(){
 }
 
 void forwardMotorL(int speed){
-  /*
+	/*
 	if (!motorLRunning){
-		digitalWrite(Motor_L_DIR, HIGH);
-		analogWrite(Motor_L_PWM, 255-START_SPEED);
-		delay(1);
-		motorLRunning = true;
-	}
- */
-
 	digitalWrite(Motor_L_DIR, HIGH);
-	analogWrite(Motor_L_PWM, 255-speed);
+	analogWrite(Motor_L_PWM, 255-START_SPEED);
+	delay(1);
+	motorLRunning = true;
+}
+*/
+
+digitalWrite(Motor_L_DIR, HIGH);
+analogWrite(Motor_L_PWM, 255-speed);
 }
 
 void reverseMotorL(int speed){
-  /*
+	/*
 	if (!motorLRunning){
-		digitalWrite(Motor_L_DIR, LOW);
-		analogWrite(Motor_L_PWM, START_SPEED);
-		delay(1);
-		motorLRunning = true;
-	}
- */
 	digitalWrite(Motor_L_DIR, LOW);
-	analogWrite(Motor_L_PWM, speed);
+	analogWrite(Motor_L_PWM, START_SPEED);
+	delay(1);
+	motorLRunning = true;
+}
+*/
+digitalWrite(Motor_L_DIR, LOW);
+analogWrite(Motor_L_PWM, speed);
 }
 
 void stopMotorL(){
@@ -271,8 +275,8 @@ void turn(bool left){
 	//forwardMotorL(DEFAULT_SPEED);
 	//delay(10);
 	stopAllMotors();
-  	char sensors = readSensors(false);
-  	delay(2000);
+	char sensors = readSensors(false);
+	delay(2000);
 	//char sensors = readSensors();
 	if(sensors & FORWARD_SENSOR_MASK){
 		//Turn until forward sensor is off the line
@@ -303,56 +307,75 @@ This should also deal with hitting walls/tape on the side. It may take some appr
 */
 
 void makeDecision(char sensors){
-  /*  Reference
-   *  Type B000TCTFF
-   *  Loc  B000RCLLR
-   */
+	/*  Reference
+	*  Type B000TCTFF
+	*  Loc  B000RCLLR
+	*/
 	if (sensors & LTURN_SENSOR_MASK){ //left turn sensor
-	  Serial.println("Reaching turnLeft");
+		Serial.println("Reaching turnLeft");
 		turn(true);
-    return;
+		return;
 	} else if (sensors & RTURN_SENSOR_MASK){
-	  Serial.println("Reaching turnRight");
-    turn(false);
-    return;
+		Serial.println("Reaching turnRight");
+		turn(false);
+		return;
 	} /*else if (!(sensors & RTURN_SENSOR_MASK) && !(sensors & LTURN_SENSOR_MASK)){
-    
-  	  stopAllMotors();
-  	  Serial.println("Reaching Turn Around");
-  	  turnAround();
-  	  return;
+
+		stopAllMotors();
+		Serial.println("Reaching Turn Around");
+		turnAround();
+		return;
 	} */else {
-    Serial.println("Reaching followLine");
-		followLine(sensors);
-    return;
-	}
+	Serial.println("Reaching followLine");
+	followLine(sensors);
+	return;
+}
 
 
-	if (sensors & WIN_CONDITION_MASK){
-		win();
-    return;
-	}
+if (sensors & WIN_CONDITION_MASK){
+	win();
+	return;
+}
 }
 
 // TODO: Fix lineFollowing
 void followLine(char sensors){
-	//This is all old code to follow a line
-  	Serial.println("Following Line");
 
-	if (sensors & RIGHT_LFOLLOW_SENSOR_MASK){
-		do {
-      stopMotorR();
-      forwardMotorL(DEFAULT_SPEED);
-		} while ((readSensors(false) & FORWARD_SENSOR_MASK));
-	} else if (sensors & LEFT_LFOLLOW_SENSOR_MASK){
-   do{
-    stopMotorL();
+
+
+	//This is all old code to follow a line
+	
+    Serial.println("Following Line");
+  bool rightSensor = sensors & RIGHT_LFOLLOW_SENSOR_MASK;
+  bool leftSensor = sensors & LEFT_LFOLLOW_SENSOR_MASK;
+  forwardMotorR(DEFAULT_SPEED);
+  forwardMotorL(DEFAULT_SPEED);
+  if (rightSensor == HIGH){
+    forwardMotorR(DEFAULT_SPEED - MOTOR_REDUCTION);
+    forwardMotorL(DEFAULT_SPEED + MOTOR_REDUCTION);
+  }
+  if (leftSensor == HIGH){
+    forwardMotorL(DEFAULT_SPEED - MOTOR_REDUCTION);
+    forwardMotorR(DEFAULT_SPEED + MOTOR_REDUCTION);
+  }
+ /* if (sensors & FORWARD_SENSOR_MASK){
     forwardMotorR(DEFAULT_SPEED);
-   } while ((readSensors(false) & FORWARD_SENSOR_MASK));
+    forwardMotorL(DEFAULT_SPEED);
+  } else if (sensors & RIGHT_LFOLLOW_SENSOR_MASK){
+		do {
+			stopMotorR();
+			forwardMotorL(DEFAULT_SPEED);
+		} while (!(readSensors(false) & FORWARD_SENSOR_MASK));
+	} else if (sensors & LEFT_LFOLLOW_SENSOR_MASK){
+		do{
+			stopMotorL();
+			forwardMotorR(DEFAULT_SPEED);
+		} while (!(readSensors(false) & FORWARD_SENSOR_MASK));
 	} else {
 	  forwardMotorR(DEFAULT_SPEED);
     forwardMotorL(DEFAULT_SPEED);
-  }
+	}
+ */
 }
 
 
@@ -363,24 +386,25 @@ void setup() {
 	pinMode(Motor_R_PWM, OUTPUT);
 	pinMode(Motor_L_DIR, OUTPUT);
 	pinMode(Motor_L_PWM, OUTPUT);
-  	pinMode(13, OUTPUT);
+	pinMode(13, OUTPUT);
 	//7 and 8 are the IR inputs
 	pinMode(RIGHT_SENSOR_PIN, INPUT);
 	pinMode(LEFT_SENSOR_PIN, INPUT);
-  pinMode(FORWARD_SENSOR_PIN, INPUT);
-  pinMode(LTURN_SENSOR_PIN, INPUT);
-  //Populates the hysteresis int so that the BOT starts in followLine()
-  for(int i = 0; i < 30; i++){
-    readSensors(true);
-  }
+	pinMode(FORWARD_SENSOR_PIN, INPUT);
+	pinMode(LTURN_SENSOR_PIN, INPUT);
+	//Populates the hysteresis int so that the BOT starts in followLine()
+	for(int i = 0; i < 30; i++){
+		readSensors(true);
+	}
 	//Define Baud rate
 	Serial.begin(9600);
 }
 
 void loop() {
-  
+
 	char sensors = readSensors(true);
-  Serial.println(sensors,BIN);
+	Serial.println(sensors,BIN);
 	makeDecision(sensors);
+	checkBatteryVoltage();
 
 }
