@@ -13,7 +13,7 @@
 #define Motor_R_PWM HG7881_A_IA // Motor A PWM Speed
 #define Motor_R_DIR HG7881_A_IB // Motor A Direction
 
-#define MOTOR_REDUCTION 30
+#define MOTOR_REDUCTION 45
 
 
 //Using bit fields would be a heavier but more readable implementation
@@ -43,7 +43,7 @@ char sensorChar;
 #define ANALOG_BATT_PIN 0
 //the analog reading at which the battery is dead - this is a cell at ~3.4 volts
 //#define BATTERY_DEAD 700
-#define BATTERY_DEAD 600
+#define BATTERY_DEAD 0
 
 
 #define RIGHT_LFOLLOW_SENSOR_MASK B00000001
@@ -68,7 +68,7 @@ char sensorChar;
 
 #define WIN_CONDITION_MASK B00000111
 
-#define DEFAULT_SPEED 135
+#define DEFAULT_SPEED 140
 #define START_SPEED 100
 
 // TODO: THIS CONSTANT NEEDS TO BE TUNED
@@ -275,17 +275,24 @@ void turn(bool left){
 	//forwardMotorL(DEFAULT_SPEED);
 	//delay(10);
 	stopAllMotors();
-	char sensors = readSensors(false);
 	delay(2000);
 	//char sensors = readSensors();
+  reverseMotorL(DEFAULT_SPEED);
+  reverseMotorR(DEFAULT_SPEED);
+  delay(300);
+  stopAllMotors();
+  char sensors = readSensors(false);
+
 	if(sensors & FORWARD_SENSOR_MASK){
 		//Turn until forward sensor is off the line
 		do{
 			sensors = readSensors(false);
 			if (left){
 				forwardMotorR(DEFAULT_SPEED);
+        
 			} else {
 				forwardMotorL(DEFAULT_SPEED);
+        
 			}
 		} while (sensors & FORWARD_SENSOR_MASK);
 	}
@@ -294,10 +301,14 @@ void turn(bool left){
 		sensors = readSensors(false);
 		if (left){
 			forwardMotorR(DEFAULT_SPEED);
+//      reverseMotorL(DEFAULT_SPEED);
 		} else {
 			forwardMotorL(DEFAULT_SPEED);
+//      reverseMotorR(DEFAULT_SPEED);
 		}
 	} while (!(sensors & FORWARD_SENSOR_MASK));
+  stopAllMotors();
+  delay(1000);
 
 }
 
@@ -352,11 +363,11 @@ void followLine(char sensors){
   forwardMotorL(DEFAULT_SPEED);
   if (rightSensor == HIGH){
     forwardMotorR(DEFAULT_SPEED - MOTOR_REDUCTION);
-    forwardMotorL(DEFAULT_SPEED + MOTOR_REDUCTION);
+    forwardMotorL(DEFAULT_SPEED);
   }
   if (leftSensor == HIGH){
     forwardMotorL(DEFAULT_SPEED - MOTOR_REDUCTION);
-    forwardMotorR(DEFAULT_SPEED + MOTOR_REDUCTION);
+    forwardMotorR(DEFAULT_SPEED);
   }
  /* if (sensors & FORWARD_SENSOR_MASK){
     forwardMotorR(DEFAULT_SPEED);
