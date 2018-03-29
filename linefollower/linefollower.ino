@@ -38,6 +38,11 @@ union sensorField {
 };
 */
 
+#define ANALOG_BATT_PIN 0
+//the analog reading at which the battery is dead - this is a cell at ~3.4 volts
+//#define BATTERY_DEAD 700
+#define BATTERY_DEAD 0
+
 
 #define RIGHT_LFOLLOW_SENSOR_MASK B00000001
 #define RIGHT_SENSOR_PIN 4
@@ -135,11 +140,21 @@ char readSensors(bool useHysteresis){
 		}
 	}
 
-
-
-
 	return sensors;
 }
+
+void checkBatteryVoltage(){
+	if (analogRead(ANALOG_BATT_PIN) < BATTERY_DEAD){
+		stopAllMotors();
+		while(1){
+			digitalWrite(13, HIGH);
+			delay(50);
+			digitalWrite(13, LOW);
+			delay(50);
+		}
+	}
+}
+
 
 void forwardMotorR(int speed){
   /*
