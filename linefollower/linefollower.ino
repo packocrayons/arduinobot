@@ -12,9 +12,11 @@
 
 #define Motor_R_PWM HG7881_A_IA // Motor A PWM Speed
 #define Motor_R_DIR HG7881_A_IB // Motor A Direction
+
+// Constant to correct the H-Bridge power disparity
 #define R_POWER 25
 
-#define MOTOR_REDUCTION 40//45
+#define MOTOR_REDUCTION 50//45
 
 
 //Using bit fields would be a heavier but more readable implementation
@@ -328,7 +330,7 @@ void turn(bool left){
 
 			}
 		} while (sensors & FORWARD_SENSOR_MASK);
-    stopAllMotors();
+    //stopAllMotors();
     //delay(1000);
     Serial.println("STATE: F off the line");
 	}
@@ -344,7 +346,7 @@ void turn(bool left){
       reverseMotorR(DEFAULT_SPEED);
 		}
 	} while (!(sensors & FORWARD_SENSOR_MASK));
-  stopAllMotors();
+  //stopAllMotors();
   Serial.println("STATE: F found the line");
   //delay(1000);
   do {
@@ -357,7 +359,7 @@ void turn(bool left){
       reverseMotorR(DEFAULT_SPEED);
     }
   } while (!(sensors & mask));
-  stopAllMotors();
+  //stopAllMotors();
   Serial.println("STATE: side found the line");
   //delay(1000);
   
@@ -401,46 +403,27 @@ if (sensors & WIN_CONDITION_MASK){
 */
 }
 
-// TODO: Fix lineFollowing
+// Line Following
 void followLine(char sensors){
 
-
-
-	//This is all old code to follow a line
-
-    Serial.println("Following Line");
+  Serial.println("Following Line");
   bool rightSensor = sensors & RIGHT_LFOLLOW_SENSOR_MASK;
   bool leftSensor = sensors & LEFT_LFOLLOW_SENSOR_MASK;
-  forwardMotorR(DEFAULT_SPEED);
-  forwardMotorL(DEFAULT_SPEED);
-  if (rightSensor == HIGH){
-    prevL = true;
-    forwardMotorR(DEFAULT_SPEED - MOTOR_REDUCTION);
-    forwardMotorL(DEFAULT_SPEED);
-  }
-  if (leftSensor == HIGH){
-    prevL = false;
-    forwardMotorL(DEFAULT_SPEED - MOTOR_REDUCTION);
-    forwardMotorR(DEFAULT_SPEED);
-  }
- /* if (sensors & FORWARD_SENSOR_MASK){
+  if (sensors & FORWARD_SENSOR_MASK){
     forwardMotorR(DEFAULT_SPEED);
     forwardMotorL(DEFAULT_SPEED);
-  } else if (sensors & RIGHT_LFOLLOW_SENSOR_MASK){
-		do {
-			stopMotorR();
-			forwardMotorL(DEFAULT_SPEED);
-		} while (!(readSensors(false) & FORWARD_SENSOR_MASK));
-	} else if (sensors & LEFT_LFOLLOW_SENSOR_MASK){
-		do{
-			stopMotorL();
-			forwardMotorR(DEFAULT_SPEED);
-		} while (!(readSensors(false) & FORWARD_SENSOR_MASK));
-	} else {
-	  forwardMotorR(DEFAULT_SPEED);
-    forwardMotorL(DEFAULT_SPEED);
-	}
- */
+  } else {
+    do {
+      sensors = readSensors(false);
+      if (sensors & LEFT_LFOLLOW_SENSOR_MASK){
+        forwardMotorR(DEFAULT_SPEED);
+        reverseMotorL(DEFAULT_SPEED - 20);
+      } else {
+        forwardMotorL(DEFAULT_SPEED);
+        reverseMotorR(DEFAULT_SPEED - 20);
+      }
+    } while (!(sensors & FORWARD_SENSOR_MASK));
+  }
 }
 
 
