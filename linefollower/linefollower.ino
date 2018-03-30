@@ -169,29 +169,13 @@ void checkBatteryVoltage(){
 
 
 void forwardMotorR(int speed){
-	/*
-	if (!motorRRunning){
-	digitalWrite(Motor_R_DIR, HIGH);
-	analogWrite(Motor_R_PWM, 255-START_SPEED);
-	delay(1);
-	motorRRunning = true;
-}
-*/
-digitalWrite(Motor_R_DIR, HIGH);
-analogWrite(Motor_R_PWM, 255 - speed - R_POWER);
+  digitalWrite(Motor_R_DIR, HIGH);
+  analogWrite(Motor_R_PWM, 255 - speed - R_POWER);
 }
 
 void reverseMotorR(int speed){
-	/*
-	if (!motorRRunning){
-	digitalWrite(Motor_R_DIR, LOW);
-	analogWrite(Motor_R_PWM, START_SPEED);
-	delay(1);
-	motorRRunning = true;
-}
-*/
-digitalWrite(Motor_R_DIR, LOW);
-analogWrite(Motor_R_PWM, speed);
+  digitalWrite(Motor_R_DIR, LOW);
+  analogWrite(Motor_R_PWM, speed);
 }
 
 void stopMotorR(){
@@ -202,28 +186,11 @@ void stopMotorR(){
 }
 
 void forwardMotorL(int speed){
-	/*
-	if (!motorLRunning){
-	digitalWrite(Motor_L_DIR, HIGH);
-	analogWrite(Motor_L_PWM, 255-START_SPEED);
-	delay(1);
-	motorLRunning = true;
-}
-*/
-
   digitalWrite(Motor_L_DIR, HIGH);
   analogWrite(Motor_L_PWM, 255-speed);
 }
 
 void reverseMotorL(int speed){
-	/*
-	if (!motorLRunning){
-	digitalWrite(Motor_L_DIR, LOW);
-	analogWrite(Motor_L_PWM, START_SPEED);
-	delay(1);
-	motorLRunning = true;
-}
-*/
   digitalWrite(Motor_L_DIR, LOW);
   analogWrite(Motor_L_PWM, speed);
 }
@@ -279,11 +246,7 @@ void turnAround(){
 
 // TODO: Refactor turn
 void turn(bool left){
-  /*
-	forwardMotorR(DEFAULT_SPEED); //take a jump forward
-	forwardMotorL(DEFAULT_SPEED);
-	delay(50);
-  */
+
 	stopAllMotors();
   delay(2000);
   char mask;
@@ -293,29 +256,8 @@ void turn(bool left){
     mask = LEFT_LFOLLOW_SENSOR_MASK;
   }
 
-  
-
- 
   char sensors = readSensors(false);
-   /*
-  if ((prevL && left) || (!prevL && !left)){
-      Serial.print("PrevL :");
-      Serial.println(prevL);
-      Serial.print("left :");
-      Serial.println(left);
-      do {
-        sensors = readSensors(false);
-        if (left){
-          forwardMotorR(DEFAULT_SPEED);
-          reverseMotorL(DEFAULT_SPEED);
-        } else {
-          forwardMotorL(DEFAULT_SPEED);
-          reverseMotorR(DEFAULT_SPEED);
-        }
-      } while (!(sensors & FORWARD_SENSOR_MASK));
-      stopAllMotors();
-  }
-  */
+
 	if(sensors & FORWARD_SENSOR_MASK){
 		//Turn until forward sensor is off the line
 		do{
@@ -383,13 +325,7 @@ void makeDecision(char sensors){
 		Serial.println("Reaching turnRight");
 		turn(false);
 		return;
-	} /*else if (!(sensors & RTURN_SENSOR_MASK) && !(sensors & LTURN_SENSOR_MASK)){
-
-		stopAllMotors();
-		Serial.println("Reaching Turn Around");
-		turnAround();
-		return;
-	} */else {
+	} else {
 	Serial.println("Reaching followLine");
 	followLine(sensors);
 	return;
