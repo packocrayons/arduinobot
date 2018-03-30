@@ -12,8 +12,9 @@
 
 #define Motor_R_PWM HG7881_A_IA // Motor A PWM Speed
 #define Motor_R_DIR HG7881_A_IB // Motor A Direction
+#define R_POWER 15
 
-#define MOTOR_REDUCTION 45
+#define MOTOR_REDUCTION 40//45
 
 
 //Using bit fields would be a heavier but more readable implementation
@@ -68,7 +69,7 @@ char sensorChar;
 
 #define WIN_CONDITION_MASK B00000111
 
-#define DEFAULT_SPEED 140
+#define DEFAULT_SPEED 120
 #define START_SPEED 100
 
 // TODO: THIS CONSTANT NEEDS TO BE TUNED
@@ -96,6 +97,9 @@ Motor L |   Bot   | Motor R
 bool motorRRunning = false;
 bool motorLRunning = true;
 unsigned long forwardSamples = 0;
+
+//Global that sets which motor has recently fired
+bool prevL = 0;
 
 char readSensors(bool useHysteresis){
 	/*
@@ -203,8 +207,8 @@ void forwardMotorL(int speed){
 }
 */
 
-digitalWrite(Motor_L_DIR, HIGH);
-analogWrite(Motor_L_PWM, 255-speed);
+  digitalWrite(Motor_L_DIR, HIGH);
+  analogWrite(Motor_L_PWM, 255-speed);
 }
 
 void reverseMotorL(int speed){
@@ -216,8 +220,8 @@ void reverseMotorL(int speed){
 	motorLRunning = true;
 }
 */
-digitalWrite(Motor_L_DIR, LOW);
-analogWrite(Motor_L_PWM, speed);
+  digitalWrite(Motor_L_DIR, LOW);
+  analogWrite(Motor_L_PWM, speed);
 }
 
 void stopMotorL(){
@@ -229,7 +233,7 @@ void stopMotorL(){
 //Speeds and motor assignments should be checked empirically
 void startTurnLeft(){
 	reverseMotorL(DEFAULT_SPEED);
-	forwardMotorR(DEFAULT_SPEED);
+	forwardMotorR(DEFAULT_SPEED + R_POWER);
 }
 
 //same as above
@@ -271,16 +275,12 @@ void turnAround(){
 
 // TODO: Refactor turn
 void turn(bool left){
-	//forwardMotorR(DEFAULT_SPEED); //take a jump forward
-	//forwardMotorL(DEFAULT_SPEED);
-	//delay(10);
+	forwardMotorR(DEFAULT_SPEED + R_POWER); //take a jump forward
+	forwardMotorL(DEFAULT_SPEED);
+	delay(50);
 	stopAllMotors();
-	delay(2000);
-	//char sensors = readSensors();
-  reverseMotorL(DEFAULT_SPEED);
-  reverseMotorR(DEFAULT_SPEED);
-  delay(300);
-  stopAllMotors();
+  delay(1000);
+
   char sensors = readSensors(false);
 
 	if(sensors & FORWARD_SENSOR_MASK){
@@ -288,11 +288,13 @@ void turn(bool left){
 		do{
 			sensors = readSensors(false);
 			if (left){
-				forwardMotorR(DEFAULT_SPEED);
-        
+				forwardMotorR(DEFAULT_SPEED + R_POWER);
+       reverseMotorL(DEFAULT_SPEED - MOTOR_REDUCTION);
+
 			} else {
 				forwardMotorL(DEFAULT_SPEED);
-        
+       reverseMotorR(DEFAULT_SPEED - MOTOR_REDUCTION);
+
 			}
 		} while (sensors & FORWARD_SENSOR_MASK);
 	}
@@ -300,15 +302,15 @@ void turn(bool left){
 	do {
 		sensors = readSensors(false);
 		if (left){
-			forwardMotorR(DEFAULT_SPEED);
-//      reverseMotorL(DEFAULT_SPEED);
+			forwardMotorR(DEFAULT_SPEED + R_POWER);
+      reverseMotorL(DEFAULT_SPEED);
 		} else {
 			forwardMotorL(DEFAULT_SPEED);
-//      reverseMotorR(DEFAULT_SPEED);
+      reverseMotorR(DEFAULT_SPEED);
 		}
 	} while (!(sensors & FORWARD_SENSOR_MASK));
   stopAllMotors();
-  delay(1000);
+  //delay(1000);
 
 }
 
@@ -342,11 +344,12 @@ void makeDecision(char sensors){
 	return;
 }
 
-
+/*
 if (sensors & WIN_CONDITION_MASK){
 	win();
 	return;
 }
+*/
 }
 
 // TODO: Fix lineFollowing
@@ -355,22 +358,22 @@ void followLine(char sensors){
 
 
 	//This is all old code to follow a line
-	
+
     Serial.println("Following Line");
   bool rightSensor = sensors & RIGHT_LFOLLOW_SENSOR_MASK;
   bool leftSensor = sensors & LEFT_LFOLLOW_SENSOR_MASK;
-  forwardMotorR(DEFAULT_SPEED);
+  forwardMotorR(DEFAULT_SPEED + R_POWER);
   forwardMotorL(DEFAULT_SPEED);
   if (rightSensor == HIGH){
-    forwardMotorR(DEFAULT_SPEED - MOTOR_REDUCTION);
+    forwardMotorR(DEFAULT_SPEED + R_POWER - MOTOR_REDUCTION);
     forwardMotorL(DEFAULT_SPEED);
   }
   if (leftSensor == HIGH){
     forwardMotorL(DEFAULT_SPEED - MOTOR_REDUCTION);
-    forwardMotorR(DEFAULT_SPEED);
+    forwardMotorR(DEFAULT_SPEED + R_POWER);
   }
  /* if (sensors & FORWARD_SENSOR_MASK){
-    forwardMotorR(DEFAULT_SPEED);
+    forwardMotorR(DEFAULT_SPEED + R_POWER);
     forwardMotorL(DEFAULT_SPEED);
   } else if (sensors & RIGHT_LFOLLOW_SENSOR_MASK){
 		do {
@@ -380,10 +383,10 @@ void followLine(char sensors){
 	} else if (sensors & LEFT_LFOLLOW_SENSOR_MASK){
 		do{
 			stopMotorL();
-			forwardMotorR(DEFAULT_SPEED);
+			forwardMotorR(DEFAULT_SPEED + R_POWER);
 		} while (!(readSensors(false) & FORWARD_SENSOR_MASK));
 	} else {
-	  forwardMotorR(DEFAULT_SPEED);
+	  forwardMotorR(DEFAULT_SPEED + R_POWER);
     forwardMotorL(DEFAULT_SPEED);
 	}
  */
@@ -409,13 +412,16 @@ void setup() {
 	}
 	//Define Baud rate
 	Serial.begin(9600);
+  forwardMotorL(DEFAULT_SPEED);
+  forwardMotorR(DEFAULT_SPEED + R_POWER);
+  delay(250);
 }
 
 void loop() {
 
-	char sensors = readSensors(true);
+	char sensors = readSensors(false);
 	Serial.println(sensors,BIN);
 	makeDecision(sensors);
-	checkBatteryVoltage();
+	//checkBatteryVoltage();
 
 }
