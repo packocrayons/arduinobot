@@ -18,11 +18,18 @@
 
 #define MOTOR_REDUCTION 50//45
 
+/*
+Written and tuning by Nathaniel Charlebois and Brydon Gibson
+
+	NB: Proper indentation is corrupted by the atrocious Arduino IDEs
+*/
+
 
 //Using bit fields would be a heavier but more readable implementation
 /*
 
 
+Alternate workflow
 typedef enum {
 LEFT = 0,
 RIGHT = 1,
@@ -33,13 +40,13 @@ FORWARD = 4
 
 //Beware system dependant endian-ness
 union sensorField {
-struct {
-bool left:1;
-bool right:1;
-bool forward:1;
-bool leftTurn:1;
+	struct {
+	bool left:1;
+	bool right:1;
+	bool forward:1;
+	bool leftTurn:1;
 };
-char sensorChar;
+	char sensorChar;
 };
 */
 
@@ -71,7 +78,7 @@ char sensorChar;
 
 #define WIN_CONDITION_MASK B00000111
 
-#define DEFAULT_SPEED 120
+#define DEFAULT_SPEED 130
 #define START_SPEED 100
 
 // TODO: THIS CONSTANT NEEDS TO BE TUNED
@@ -100,10 +107,13 @@ bool motorRRunning = false;
 bool motorLRunning = true;
 unsigned long forwardSamples = 0;
 
-//Global that sets which motor primary motor last engaged in 
+//Global that sets which motor primary motor last engaged in
 // false = left
 // true  = right
 bool prevL = false;
+//left == 1
+bool path[] = {1,0,1,0,0};
+int nextPathIndex = 0;
 
 char readSensors(bool useHysteresis){
 	/*
@@ -198,7 +208,7 @@ void reverseMotorL(int speed){
 void stopMotorL(){
 	digitalWrite(Motor_L_DIR, LOW);
 	digitalWrite(Motor_L_PWM, LOW);
-	motorLRunning=false;
+	motorLRunning = false;
 }
 
 //Speeds and motor assignments should be checked empirically
@@ -276,7 +286,7 @@ void turn(bool left){
     //delay(1000);
     Serial.println("STATE: F off the line");
 	}
- 
+
 
 	do {
 		sensors = readSensors(true);
@@ -304,7 +314,7 @@ void turn(bool left){
   //stopAllMotors();
   Serial.println("STATE: side found the line");
   //delay(1000);
-  
+
 }
 
 
@@ -319,24 +329,27 @@ void makeDecision(char sensors){
 	*/
 	if (sensors & LTURN_SENSOR_MASK){ //left turn sensor
 		Serial.println("Reaching turnLeft");
-		turn(true);
+    if(path[nextPathIndex]){
+      nextPathIndex++;
+
+		  turn(true);
+    }
 		return;
 	} else if (sensors & RTURN_SENSOR_MASK){
 		Serial.println("Reaching turnRight");
-		turn(false);
+    if(!path[nextPathIndex]){
+      nextPathIndex++;
+		  turn(false);
+    }
+		return;
+	} else if {
+		win();
 		return;
 	} else {
 	Serial.println("Reaching followLine");
 	followLine(sensors);
 	return;
-}
-
-/*
-if (sensors & WIN_CONDITION_MASK){
-	win();
-	return;
-}
-*/
+	}
 }
 
 // Line Following
@@ -391,6 +404,8 @@ void loop() {
 
 	char sensors = readSensors(false);
 	Serial.println(sensors,BIN);
+  	Serial.print("nextTurn: ");
+  	Serial.println(path[nextPathIndex]);
 	makeDecision(sensors);
 	//checkBatteryVoltage();
 
