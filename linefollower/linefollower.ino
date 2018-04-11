@@ -21,7 +21,7 @@
 /*
 Written and tuning by Nathaniel Charlebois and Brydon Gibson
 
-	NB: Proper indentation is corrupted by the atrocious Arduino IDEs
+	NB: Proper indentation is corrupted by the atrocious Arduino IDE
 */
 
 
@@ -395,9 +395,9 @@ void setup() {
 	}
 	//Define Baud rate
 	Serial.begin(9600);
-  forwardMotorL(DEFAULT_SPEED);
-  forwardMotorR(DEFAULT_SPEED);
-  delay(250);
+  	forwardMotorL(DEFAULT_SPEED);
+  	forwardMotorR(DEFAULT_SPEED);
+  	delay(250);
 }
 
 void loop() {
